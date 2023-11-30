@@ -1,17 +1,14 @@
 import tkinter as tk
 import os
 import sqlite3
-
 from tkinter import filedialog, scrolledtext, messagebox
-from Jokes_TextPreprocessing import read_and_save_to_database
 from PIL import Image, ImageTk
-
 
 class JokesApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Jokes App")
-        self.database_path = 'jokes_database.db'
+        self.database_path = None  # Initialize to None
         self.connection = None
         self.connection_status = tk.StringVar()
 
@@ -24,9 +21,6 @@ class JokesApp:
         self.connection_status.set("disconnected")
         self.status_label = tk.Label(self.root, textvariable=self.connection_status)
         self.status_label.pack(pady=5)
-
-        self.import_button = tk.Button(self.root, text="Import HTML Files", command=self.import_files)
-        self.import_button.pack(pady=10)
 
         self.show_all_button = tk.Button(self.root, text="Show All Texts", command=self.show_all_texts)
         self.show_all_button.pack(pady=10)
@@ -47,9 +41,16 @@ class JokesApp:
         self.icon_error = ImageTk.PhotoImage(Image.open(os.path.join(icon_folder_path, "Status_Error.png")))
 
     def connect_to_database(self):
+        db_file_path = filedialog.askopenfilename(title="Select Database File", filetypes=[("SQLite Database", "*.db")])
+
+        if not db_file_path:
+            messagebox.showinfo("Database Not Selected", "Please select a database file.")
+            return
+
         try:
-            self.connection = sqlite3.connect(self.database_path)
-            messagebox.showinfo("Database Connected", f"Successfully connected to the database -{self.database_path}\nDatabase location: {os.path.abspath(self.database_path)}")
+            self.connection = sqlite3.connect(db_file_path)
+            self.database_path = db_file_path
+            messagebox.showinfo("Database Connected", f"Successfully connected to the database - {db_file_path}\nDatabase location: {os.path.abspath(db_file_path)}")
         except Exception as e:
             messagebox.showerror("Database Connection Error", f"Error: {str(e)}")
 
@@ -62,16 +63,6 @@ class JokesApp:
         else:
             self.connection_status.set("disconnected")
             self.status_label.config(image=self.icon_disconnected)
-
-    def import_files(self):
-        if not self.connection:
-            messagebox.showinfo("Database Not Connected", "Please connect to the database first.")
-            return
-
-        folder_path = filedialog.askdirectory(title="Select Folder with HTML Files")
-        if folder_path:
-            read_and_save_to_database(self.connection, folder_path)
-            messagebox.showinfo("Import Complete", "HTML files imported successfully!")
 
     def show_all_texts(self):
         if not self.connection:
