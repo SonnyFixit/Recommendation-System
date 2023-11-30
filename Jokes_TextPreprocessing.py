@@ -9,6 +9,8 @@ def read_and_save_to_database(connection, folder_path):
             file_path = os.path.join(folder_path, file_name)
 
             if os.path.isfile(file_path):
+                print(f"Reading and processing file: {file_name}")
+
                 with open(file_path, 'r', encoding='utf-8') as file:
                     html_content = file.read()
                     soup = BeautifulSoup(html_content, 'html.parser')
@@ -16,6 +18,9 @@ def read_and_save_to_database(connection, folder_path):
                     content_to_save = body_tag.get_text(separator='\n', strip=True) if body_tag else "No body content found."
 
                     insert_into_database(connection, file_name, content_to_save)
+                    print(f"    Inserted into database.")
+
+    print("Import process completed.")
 
 def create_table(connection):
     cursor = connection.cursor()

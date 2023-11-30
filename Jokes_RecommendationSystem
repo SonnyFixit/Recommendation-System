@@ -1,7 +1,11 @@
 import tkinter as tk
-from tkinter import filedialog, scrolledtext, messagebox
+import os
 import sqlite3
+
+from tkinter import filedialog, scrolledtext, messagebox
 from Jokes_TextPreprocessing import read_and_save_to_database
+from PIL import Image, ImageTk
+
 
 class JokesApp:
     def __init__(self, root):
@@ -9,12 +13,17 @@ class JokesApp:
         self.root.title("Jokes App")
         self.database_path = 'jokes_database.db'
         self.connection = None
+        self.connection_status = tk.StringVar()
 
         self.create_widgets()
 
     def create_widgets(self):
         self.connect_button = tk.Button(self.root, text="Connect to Database", command=self.connect_to_database)
         self.connect_button.pack(pady=10)
+
+        self.connection_status.set("disconnected")
+        self.status_label = tk.Label(self.root, textvariable=self.connection_status)
+        self.status_label.pack(pady=5)
 
         self.import_button = tk.Button(self.root, text="Import HTML Files", command=self.import_files)
         self.import_button.pack(pady=10)
@@ -28,12 +37,31 @@ class JokesApp:
         self.text_area = scrolledtext.ScrolledText(self.root, width=60, height=20, wrap=tk.WORD)
         self.text_area.pack(pady=10)
 
+        self.load_icons()
+        self.update_connection_status()
+
+    def load_icons(self):
+        icon_folder_path = r'C:\GitRepositories\Recommendation-System\Icons'
+        self.icon_connected = ImageTk.PhotoImage(Image.open(os.path.join(icon_folder_path, "Status_Okay.png")))
+        self.icon_disconnected = ImageTk.PhotoImage(Image.open(os.path.join(icon_folder_path, "Status_NotConnected.png")))
+        self.icon_error = ImageTk.PhotoImage(Image.open(os.path.join(icon_folder_path, "Status_Error.png")))
+
     def connect_to_database(self):
         try:
             self.connection = sqlite3.connect(self.database_path)
-            messagebox.showinfo("Database Connected", "Successfully connected to the database.")
+            messagebox.showinfo("Database Connected", f"Successfully connected to the database -{self.database_path}\nDatabase location: {os.path.abspath(self.database_path)}")
         except Exception as e:
             messagebox.showerror("Database Connection Error", f"Error: {str(e)}")
+
+        self.update_connection_status()
+
+    def update_connection_status(self):
+        if self.connection:
+            self.connection_status.set("connected")
+            self.status_label.config(image=self.icon_connected)
+        else:
+            self.connection_status.set("disconnected")
+            self.status_label.config(image=self.icon_disconnected)
 
     def import_files(self):
         if not self.connection:
