@@ -16,23 +16,21 @@ def insert_into_database(connection, file_name, content):
 def process_folder(folder_path, connection):
     create_table(connection)
 
-
     for file_name in natsorted(os.listdir(folder_path)):
         file_path = os.path.join(folder_path, file_name)
 
         if file_name.endswith('.xlsx') or file_name.endswith('.xls'):
             print(f"Processing Excel file: {file_name}")
-            extract_text_from_excel(file_path, connection)
+            extract_text_from_excel(file_path, connection, file_name)
             print("    Entries inserted into the database.")
 
-def extract_text_from_excel(file_path, connection):
+def extract_text_from_excel(file_path, connection, file_name):
     try:
-
         df = pd.read_excel(file_path, engine='openpyxl', header=None)
 
-
         for i, text in enumerate(df.iloc[:, 0], 1):
-            insert_into_database(connection, f"Text {i}", text)
+            formatted_file_name = f"dowcip_{i}"  # Adjust the format as needed
+            insert_into_database(connection, formatted_file_name, text)
 
     except Exception as e:
         print(f"An error occurred while processing Excel file: {e}")
