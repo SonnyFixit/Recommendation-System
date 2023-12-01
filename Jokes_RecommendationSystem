@@ -3,6 +3,7 @@ import os
 import sqlite3
 from tkinter import filedialog, scrolledtext, messagebox
 from PIL import Image, ImageTk
+import pandas as pd
 
 class JokesApp:
     def __init__(self, root):
@@ -27,6 +28,10 @@ class JokesApp:
 
         self.show_random_button = tk.Button(self.root, text="Show Random Text", command=self.show_random_text)
         self.show_random_button.pack(pady=10)
+        
+        self.show_random_button = tk.Button(self.root, text="Show 10 text", command=self.show_first_10_records)
+        self.show_random_button.pack(pady=10)
+        
 
         self.text_area = scrolledtext.ScrolledText(self.root, width=60, height=20, wrap=tk.WORD)
         self.text_area.pack(pady=10)
@@ -89,6 +94,18 @@ class JokesApp:
 
         self.text_area.delete(1.0, tk.END)  # Clear the text area
         self.text_area.insert(tk.END, f"Joke - {random_text[0]}\n{random_text[1]}\n\n")
+        
+    def show_first_10_records(self):
+        
+        db_connection = sqlite3.connect('baza_danych.db')
+
+        query = 'SELECT * FROM dane'
+        df_from_db = pd.read_sql_query(query, db_connection)
+
+        self.text_area.delete(1.0, tk.END)  # Clear the text area
+
+        for index, row in df_from_db.iterrows():
+            self.text_area.insert(tk.END, f"Record {index + 1}: {row}\n\n")
 
 if __name__ == "__main__":
     root = tk.Tk()
