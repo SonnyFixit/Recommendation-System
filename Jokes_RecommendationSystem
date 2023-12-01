@@ -1,41 +1,48 @@
 import tkinter as tk
 import os
 import sqlite3
-from tkinter import filedialog, scrolledtext, messagebox
+from tkinter import filedialog, scrolledtext
 from PIL import Image, ImageTk
-import pandas as pd
 
 class JokesApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Jokes App")
-        self.database_path = None  # Initialize to None
+        self.database_path = None
         self.connection = None
         self.connection_status = tk.StringVar()
+        self.current_db_label = tk.StringVar()
 
         self.create_widgets()
 
     def create_widgets(self):
-        self.connect_button = tk.Button(self.root, text="Connect to Database", command=self.connect_to_database)
-        self.connect_button.pack(pady=10)
+        self.connection_status_label = tk.Label(self.root, text="Database Connection Status:")
+        self.connection_status_label.pack(side=tk.TOP, pady=5)
 
-        self.connection_status.set("disconnected")
         self.status_label = tk.Label(self.root, textvariable=self.connection_status)
-        self.status_label.pack(pady=5)
+        self.status_label.pack(side=tk.TOP)
 
-        self.show_all_button = tk.Button(self.root, text="Show All Texts", command=self.show_all_texts)
-        self.show_all_button.pack(pady=10)
+        self.current_db_label_label = tk.Label(self.root, text="Currently Connected Database:")
+        self.current_db_label_label.pack(side=tk.TOP, pady=5)
 
-        self.show_random_button = tk.Button(self.root, text="Show Random Text", command=self.show_random_text)
-        self.show_random_button.pack(pady=10)
-        
-        self.show_all_records_button = tk.Button(self.root, text="Show All Records", command=self.show_all_records)
+        self.current_db_label_display = tk.Label(self.root, textvariable=self.current_db_label)
+        self.current_db_label_display.pack(side=tk.TOP)
+
+        self.load_icons()
+        self.update_connection_status()
+
+        self.show_all_texts_button = tk.Button(self.root, text="Show All Texts", command=self.show_all_texts)
+        self.show_all_texts_button.pack(pady=10)
+
+        self.show_random_text_button = tk.Button(self.root, text="Show Random Text", command=self.show_random_text)
+        self.show_random_text_button.pack(pady=10)
+
+        self.show_all_records_button = tk.Button(self.root, text="Show All Ratings Records", command=self.show_all_records)
         self.show_all_records_button.pack(pady=10)
 
         self.text_area = scrolledtext.ScrolledText(self.root, width=60, height=20, wrap=tk.WORD)
         self.text_area.pack(pady=10)
 
-        self.load_icons()
         self.update_connection_status()
 
     def load_icons(self):
@@ -44,64 +51,48 @@ class JokesApp:
         self.icon_disconnected = ImageTk.PhotoImage(Image.open(os.path.join(icon_folder_path, "Status_NotConnected.png")))
         self.icon_error = ImageTk.PhotoImage(Image.open(os.path.join(icon_folder_path, "Status_Error.png")))
 
-    def connect_to_database(self):
-        db_file_path = filedialog.askopenfilename(title="Select Database File", filetypes=[("SQLite Database", "*.db")])
-
-        if not db_file_path:
-            messagebox.showinfo("Database Not Selected", "Please select a database file.")
-            return
-
+    def connect_to_database(self, db_filename):
         try:
-            self.connection = sqlite3.connect(db_file_path)
-            self.database_path = db_file_path
-            messagebox.showinfo("Database Connected", f"Successfully connected to the database - {db_file_path}\nDatabase location: {os.path.abspath(db_file_path)}")
+            self.connection = sqlite3.connect(db_filename)
+            self.database_path = db_filename
+            self.update_connection_status()
         except Exception as e:
-            messagebox.showerror("Database Connection Error", f"Error: {str(e)}")
-
-        self.update_connection_status()
+            self.connection = None
+            self.connection_status.set(f"Error: {str(e)}")
+            self.status_label.config(image=self.icon_error)
 
     def update_connection_status(self):
         if self.connection:
-            self.connection_status.set("connected")
+            status_text = f"Connected to {os.path.basename(self.database_path)}\nDatabase location: {os.path.abspath(self.database_path)}"
+            self.connection_status.set(status_text)
+            self.current_db_label.set(f"{os.path.basename(self.database_path)} - {os.path.abspath(self.database_path)}")
             self.status_label.config(image=self.icon_connected)
         else:
-            self.connection_status.set("disconnected")
+            self.connection_status.set("Disconnected")
+            self.current_db_label.set("No database connected")
             self.status_label.config(image=self.icon_disconnected)
 
     def show_all_texts(self):
-        if not self.connection:
-            messagebox.showinfo("Database Not Connected", "Please connect to the database first.")
-            return
-
-        cursor = self.connection.cursor()
-        cursor.execute('SELECT file_name, content FROM jokes')
-        all_texts = cursor.fetchall()
-
-        self.text_area.delete(1.0, tk.END)  # Clear the text area
-
-        for i, (file_name, text) in enumerate(all_texts, start=1):
-            self.text_area.insert(tk.END, f"Joke {i} - {file_name}\n{text}\n\n{'-' * 40}\n\n")
+        self.connect_to_database("Jokes_TextData.db")
+        self.execute_query_and_display('SELECT file_name, content FROM jokes')
 
     def show_random_text(self):
-        if not self.connection:
-            messagebox.showinfo("Database Not Connected", "Please connect to the database first.")
-            return
+        self.connect_to_database("Jokes_TextData.db")
+        self.execute_query_and_display('SELECT file_name, content FROM jokes ORDER BY RANDOM() LIMIT 1')
 
-        cursor = self.connection.cursor()
-        cursor.execute('SELECT file_name, content FROM jokes ORDER BY RANDOM() LIMIT 1')
-        random_text = cursor.fetchone()
-
-        self.text_area.delete(1.0, tk.END)  # Clear the text area
-        self.text_area.insert(tk.END, f"Joke - {random_text[0]}\n{random_text[1]}\n\n")
-        
     def show_all_records(self):
+        self.connect_to_database("Ratings_Test.db")
+        self.execute_query_and_display('SELECT * FROM dane')
+
+    def execute_query_and_display(self, query):
         if not self.connection:
-            messagebox.showinfo("Database Not Connected", "Please connect to the database first.")
+            self.connection_status.set("Please connect to the database first.")
+            self.status_label.config(image=self.icon_disconnected)
             return
 
         cursor = self.connection.cursor()
-        cursor.execute('SELECT * FROM dane')
-        all_records = cursor.fetchall()
+        cursor.execute(query)
+        result = cursor.fetchall()
 
         self.text_area.delete(1.0, tk.END)  # Clear the text area
 
@@ -109,7 +100,7 @@ class JokesApp:
         column_names = [description[0] for description in cursor.description]
 
         # Print each record with column labels
-        for index, record in enumerate(all_records, start=1):
+        for index, record in enumerate(result, start=1):
             self.text_area.insert(tk.END, f"Record {index}:\n")
             for column_name, value in zip(column_names, record):
                 self.text_area.insert(tk.END, f"{column_name}: {value}\n")
