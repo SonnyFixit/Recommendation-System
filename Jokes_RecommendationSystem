@@ -29,9 +29,8 @@ class JokesApp:
         self.show_random_button = tk.Button(self.root, text="Show Random Text", command=self.show_random_text)
         self.show_random_button.pack(pady=10)
         
-        self.show_random_button = tk.Button(self.root, text="Show 10 text", command=self.show_first_10_records)
-        self.show_random_button.pack(pady=10)
-        
+        self.show_all_records_button = tk.Button(self.root, text="Show All Records", command=self.show_all_records)
+        self.show_all_records_button.pack(pady=10)
 
         self.text_area = scrolledtext.ScrolledText(self.root, width=60, height=20, wrap=tk.WORD)
         self.text_area.pack(pady=10)
@@ -95,17 +94,26 @@ class JokesApp:
         self.text_area.delete(1.0, tk.END)  # Clear the text area
         self.text_area.insert(tk.END, f"Joke - {random_text[0]}\n{random_text[1]}\n\n")
         
-    def show_first_10_records(self):
-        
-        db_connection = sqlite3.connect('baza_danych.db')
+    def show_all_records(self):
+        if not self.connection:
+            messagebox.showinfo("Database Not Connected", "Please connect to the database first.")
+            return
 
-        query = 'SELECT * FROM dane'
-        df_from_db = pd.read_sql_query(query, db_connection)
+        cursor = self.connection.cursor()
+        cursor.execute('SELECT * FROM dane')
+        all_records = cursor.fetchall()
 
         self.text_area.delete(1.0, tk.END)  # Clear the text area
 
-        for index, row in df_from_db.iterrows():
-            self.text_area.insert(tk.END, f"Record {index + 1}: {row}\n\n")
+        # Get column names
+        column_names = [description[0] for description in cursor.description]
+
+        # Print each record with column labels
+        for index, record in enumerate(all_records, start=1):
+            self.text_area.insert(tk.END, f"Record {index}:\n")
+            for column_name, value in zip(column_names, record):
+                self.text_area.insert(tk.END, f"{column_name}: {value}\n")
+            self.text_area.insert(tk.END, '-' * 40 + '\n')
 
 if __name__ == "__main__":
     root = tk.Tk()

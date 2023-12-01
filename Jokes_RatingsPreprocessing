@@ -1,13 +1,10 @@
 import pandas as pd
 import sqlite3
 
-
 excel_file_path = 'C:\\Users\\fikse\\Desktop\\Ratings\\FINAL jester 2006-15.xls'
-
 
 db_connection = sqlite3.connect('Ratings_Test.db')
 cursor = db_connection.cursor()
-
 
 create_table_query = '''
 CREATE TABLE IF NOT EXISTS dane (
@@ -15,20 +12,27 @@ CREATE TABLE IF NOT EXISTS dane (
     liczba_ocenionych_dowcipow INTEGER,
     {}
 );
-'''.format(', '.join([f'dowcip_{i} INTEGER' for i in range(1, 151)]))
+'''.format(', '.join([f'dowcip_{i} REAL' for i in range(1, 151)]))  # Używamy REAL zamiast INTEGER
 
 cursor.execute(create_table_query)
 db_connection.commit()
 
+def convert_to_float(value):
+    try:
+        converted_value = float(value)
+        if converted_value == 99:
+            return None  # Jeśli wartość to 99, zapisz jako None
+        return converted_value
+    except (ValueError, TypeError):
+        return None
+
 
 df = pd.read_excel(excel_file_path, header=None)
 
-
 for index, row in df.iterrows():
     user_id = index + 1  # ID użytkownika (inkrementacja)
-    num_rated_jokes = row[0]
-    joke_ratings = row.drop(0).tolist()
-
+    num_rated_jokes = int(row[0])  # Konwersja na int dla ID użytkownika
+    joke_ratings = [convert_to_float(val) for val in row.drop(0).tolist()]
 
     insert_query = f'''
     INSERT INTO dane (id, liczba_ocenionych_dowcipow, {', '.join([f'dowcip_{i}' for i in range(1, 151)])})
@@ -36,7 +40,6 @@ for index, row in df.iterrows():
     '''
     values = [user_id, num_rated_jokes] + joke_ratings
     cursor.execute(insert_query, values)
-
 
 db_connection.commit()
 db_connection.close()
