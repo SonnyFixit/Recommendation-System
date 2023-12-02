@@ -1,0 +1,131 @@
+Wykorzystane zbiory danych z linku: https://eigentaste.berkeley.edu/dataset/
+
+1. Jokes_SQLInsertion
+
+Cel skryptu:
+
+Skrypt ma na celu przetworzenie i zapisanie danych dotyczących żartów oraz ocen użytkowników w bazie danych SQLite.
+
+Struktura bazy danych:
+
+    Tabela 'jokes'
+        joke_id (INTEGER): Unikalny identyfikator żartu.
+        joke (TEXT): Tekst żartu w formacie tekstowym.
+
+    Tabela 'ratings'
+        user_id (INTEGER): Unikalny identyfikator użytkownika.
+        number_of_jokes_rated (INTEGER): Liczba ocenionych żartów przez użytkownika.
+        joke_1, joke_2, ..., joke_100 (FLOAT): Oceny użytkownika dla poszczególnych żartów. Oceny są znormalizowane.
+
+Sposób działania:
+
+Krok 1: Pobieranie i zapisywanie danych dotyczących żartów
+
+    Skrypt rozpoczyna się od utworzenia lub połączenia z bazą danych SQLite o nazwie 'jester_jokes'.
+    Tworzone są dwie tabele: 'jokes' do przechowywania żartów oraz 'ratings' do przechowywania ocen użytkowników.
+    Dane żartów pobierane są z plików HTML w folderze 'data/raw/jokes'. Każdy plik reprezentuje jeden żart, który jest przetwarzany z użyciem html2text i zapisywany w tabeli 'jokes'.
+
+Krok 2: Pobieranie i zapisywanie ocen użytkowników
+
+    Odczytywane są dane ocen z trzech plików Excel: 'jester-data-1.xls', 'jester-data-2.xls', 'jester-data-3.xls'.
+    Dane są łączone w jedną ramkę danych, a następnie nadawane są unikalne identyfikatory użytkowników.
+    Oceny są zapisywane w tabeli 'ratings' w bazie danych.
+
+Sprawdzenie efektów:
+
+Po zakończeniu skryptu, wyświetlane są ostatnie wiersze tabeli 'ratings' w celu weryfikacji wprowadzonych zmian. Dodatkowo, dane są zapisywane do pliku CSV ('data/jester_jokes_rating.csv').
+
+Uwagi:
+
+    Przed ponownym uruchomieniem skryptu, warto wyczyścić poprzednie dane w bazie danych i folderze wynikowym.
+
+
+#######################################################################
+
+2. Jokes_DataPreprocessing
+
+Cel skryptu
+
+Skrypt ma na celu przetworzenie ocen użytkowników, normalizację danych oraz obliczenie podobieństwa między aktywnym użytkownikiem a innymi użytkownikami. Znormalizowane oceny są zapisywane w bazie danych SQLite.
+Struktura bazy danych
+
+    Tabela 'ratings'
+        user_id (INTEGER): Unikalny identyfikator użytkownika.
+        number_of_jokes_rated (INTEGER): Liczba ocenionych żartów przez użytkownika.
+        joke_1, joke_2, ..., joke_100 (FLOAT): Oceny użytkownika dla poszczególnych żartów.
+
+    Tabela 'normalized_ratings'
+        user_id (INTEGER): Unikalny identyfikator użytkownika.
+        number_of_jokes_rated (INTEGER): Liczba ocenionych żartów przez użytkownika.
+        joke_1, joke_2, ..., joke_100 (FLOAT): Znormalizowane oceny użytkownika dla poszczególnych żartów.
+
+Krok 1: Przygotowanie danych
+
+    Skrypt rozpoczyna się od połączenia z bazą danych SQLite o nazwie 'jester_jokes'.
+    Pobierane są dane ocen użytkowników z tabeli 'ratings'.
+    Tworzona jest ramka danych r_df, która zawiera dane tylko dla 10 użytkowników i 8 żartów w celu monitorowania procesu.
+
+Krok 2: Normalizacja danych
+
+    Ocenki '99' są zamieniane na 'NaN' przy użyciu funkcji replace_99.
+    Dane są normalizowane dla każdego użytkownika, odejmując średnią ocen od poszczególnych ocen. Operacja ta jest wykonywana przez funkcję normalization.
+    Wartości 'NaN' są zamieniane na '0' za pomocą funkcji replace_0.
+
+Krok 3: Zapisywanie znormalizowanych danych
+
+    Znormalizowane dane są zapisywane w tabeli 'normalized_ratings' w bazie danych za pomocą funkcji insert_normalized_ratings_to_database.
+    Zmiany są zapisywane do bazy danych.
+
+Krok 4: Obliczanie podobieństwa
+
+    Funkcja calculate_similarity oblicza podobieństwo między aktywnym użytkownikiem a innymi użytkownikami na podstawie znormalizowanych ocen.
+
+
+#######################################################################
+
+2. Jokes_UserCollaborativeFiltering
+
+Cel skryptu
+
+Skrypt ten ma na celu rekomendację żartów dla aktywnego użytkownika na podstawie podobieństwa do użytkowników, którzy ocenili te same żarty. Rekomendacje są oparte na ocenach znormalizowanych w bazie danych.
+Struktura bazy danych
+
+    Główne funkcje:
+        weight_factor(x, y): Funkcja obliczająca współczynnik wagi, czyli podobieństwo między użytkownikiem x i użytkownikiem y.
+        connect_to_database(sql_db): Funkcja łącząca się z bazą danych SQLite.
+        select_normalized_ratings(conn): Funkcja pobierająca znormalizowane oceny z bazy danych.
+        select_ratings(conn): Funkcja pobierająca oceny z bazy danych.
+        select_complete_and_sparse_ratings(normalized_ratings_df): Funkcja pobierająca oceny kompletnie i rzadko znormalizowane.
+        select_random_active_user(sparse_ratings): Funkcja wybierająca losowego aktywnego użytkownika spośród rzadko ocenianych.
+        calculate_similarity(active_user_rating_list, complete_ratings): Funkcja obliczająca podobieństwo między aktywnym użytkownikiem a użytkownikami sąsiadującymi.
+        select_random_neighbours(similarity, num_neighbours=30): Funkcja wybierająca losowych sąsiadów spośród użytkowników sąsiadujących.
+        select_recommendation_columns(active_user_rating): Funkcja wybierająca kolumny do polecenia dla aktywnego użytkownika.
+        calculate_active_user_mean_rating(active_user_id, ratings_df, recommendation_columns): Funkcja obliczająca średnią ocen aktywnego użytkownika.
+        suggest_joke(neighbours_df, neighbour_user_similarity, active_user_mean_rating): Funkcja sugerująca żart dla aktywnego użytkownika.
+        score_user_item(item_id, neighbours_df, neighbour_user_similarity, active_user_mean_rating): Funkcja obliczająca wynik dla danego żartu.
+
+Krok 1: Wybór aktywnego użytkownika
+
+    Skrypt rozpoczyna się od połączenia z bazą danych SQLite o nazwie 'jester_jokes'.
+    Pobierane są znormalizowane oceny i oceny użytkowników z tabeli 'normalized_ratings' i 'ratings'.
+
+Krok 2: Wybór użytkownika i przygotowanie danych
+
+    Skrypt wybiera losowego aktywnego użytkownika spośród użytkowników rzadko ocenianych.
+    Oceny aktywnego użytkownika są wyświetlane.
+
+Krok 3: Obliczenia i rekomendacje
+
+    Skrypt oblicza podobieństwo między aktywnym użytkownikiem a innymi użytkownikami spośród kompletnych ocen.
+    Następnie wybierane są losowe sąsiadki.
+    Kolumny żartów do polecenia są wybierane dla aktywnego użytkownika.
+    Obliczana jest średnia ocen aktywnego użytkownika.
+    Sugerowany jest żart na podstawie ocen sąsiadów i aktywnego użytkownika.
+
+Krok 4: Prezentacja wyników
+
+    Wybrane żarty są wyświetlane wraz z ich treścią z bazy danych.
+
+Uwagi
+
+    Rekomendacje są oparte na podobieństwie między użytkownikami, co pozwala skryptowi sugerować żarty, które mogą być interesujące dla aktywnego użytkownika.
