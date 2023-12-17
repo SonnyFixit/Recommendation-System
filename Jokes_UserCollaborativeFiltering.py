@@ -109,9 +109,12 @@ def main():
     ratings_df = select_ratings(conn)
 
     complete_ratings, sparse_ratings = select_complete_and_sparse_ratings(normalized_ratings_df)
+    
+    output = ""
 
     # Select a random active user
     active_user_id = select_random_active_user(sparse_ratings)
+    output += "Randomly selected user ID {} as the active user for whom we will recommend a joke\n".format(str(active_user_id))
     print("Randomly selected user ID {} as the active user for whom we will recommend a joke".format(str(active_user_id)))
 
     # Display the ratings given by the active user for 100 jokes
@@ -119,6 +122,8 @@ def main():
     active_user_rating = active_user.iloc[:, 2:]
     print('Ratings given by the active user {} for 100 jokes'.format(str(active_user_id)))
     print(active_user_rating)
+    output += 'Ratings given by the active user {} for 100 jokes\n'.format(str(active_user_id))
+    output += str(active_user_rating) + "\n"
 
     # Save the active user's ratings to a list
     active_user_rating_list = active_user_rating.values.ravel()
@@ -129,6 +134,7 @@ def main():
     # Select random neighbors
     neighbours = select_random_neighbours(similarity)
     print('We have {} potential neighbors! Now we will randomly select 30 samples among them'.format(len(neighbours)))
+    output += 'We have {} potential neighbors! Now we will randomly select 30 samples among them\n'.format(len(neighbours))
 
     # Ensure that no neighbor is selected more than once with replace=False
     selected_neighbours = neighbours
@@ -148,20 +154,26 @@ def main():
     # Display the IDs of neighbor users and their similarity
     print('Neighbor user IDs: ', neighbour_user_id, '\n\n')
     print('Neighbor user similarity: ', neighbour_user_similarity)
+    output += 'Neighbor user IDs: {}\n\n'.format(neighbour_user_id)
+    output += 'Neighbor user similarity: {}\n\n'.format(neighbour_user_similarity)
 
     # Filter the neighbor dataframe based on user ID
     neighbours_df = complete_ratings[complete_ratings['user_id'].isin(neighbour_user_id)]
 
     print('We will propose one of {} jokes to the active user \n\n'.format(len(recommendation_columns)))
+    output += 'We will propose one of {} jokes to the active user\n\n'.format(len(recommendation_columns))
 
     # Select only the jokes that have not yet been rated by the active user
     neighbours_df = neighbours_df[recommendation_columns]
     print(neighbours_df.head())
+    output += str(neighbours_df.head()) + "\n"
 
     top_score, joke_to_suggest = suggest_joke(neighbours_df, neighbour_user_similarity, active_user_mean_rating)
 
     print('Highest score is', top_score)
     print('The highest score, among all unrated jokes, was received by the joke', joke_to_suggest)
+    output += 'Highest score is {}\n'.format(top_score)
+    output += 'The highest score, among all unrated jokes, was received by the joke {}\n'.format(joke_to_suggest)
     
     # Display the selected joke from the database
     query_joke = 'SELECT * FROM jokes WHERE joke_id = ?'
@@ -171,8 +183,12 @@ def main():
         joke_id, joke_text = joke_data
         print('\nSelected joke (number {}):'.format(joke_id))
         print(joke_text)
+        output += '\nSelected joke (number {}):\n{}'.format(joke_id, joke_text)
     else:
         print('\nFailed to find joke number {} in the database.'.format(joke_to_suggest))
+        output += '\nFailed to find joke number {} in the database.'.format(joke_to_suggest)
+        
+    return output
 
 
 if __name__ == "__main__":
