@@ -1,0 +1,233 @@
+Used data from: https://eigentaste.berkeley.edu/dataset/
+
+1. Jokes_SQLInsertion
+
+Script functionality:
+
+The script is designed to process and store data about jokes and user ratings in a SQLite database.
+
+Database structure:
+
+    Tabel 'jokes'
+        joke_id (INTEGER): Unique identifier for the joke.
+        joke (TEXT): The text of the joke in text format.
+
+    Tabel 'ratings'
+        user_id (INTEGER): Unique identifier for the user.
+        number_of_jokes_rated (INTEGER): Number of jokes rated by the user.
+        joke_1, joke_2, ..., joke_100 (FLOAT): User ratings for each joke. Ratings are normalized.
+
+How to run it:
+
+Step 1: Downloading and storing joke data
+
+    The script starts by creating or connecting to a SQLite database named 'jester_jokes'.
+    Two tables are created: 'jokes' for storing jokes and 'ratings' for storing user ratings.
+    Joke data is retrieved from HTML files in the 'data/raw/jokes' folder. Each file represents one joke, which is processed using html2text and stored in the 'jokes' table.
+
+Step 2: Downloading and storing user ratings
+
+    Rating data is read from three Excel files: 'jester-data-1.xls', 'jester-data-2.xls', 'jester-data-3.xls'.
+    The data is combined into a single data frame, and unique user identifiers are assigned.
+    Ratings are stored in the 'ratings' table in the database.
+
+Results verification:
+
+    After the script completes, the last rows of the 'ratings' table are displayed to verify the changes made. Additionally, the data is saved to a CSV file ('data/jester_jokes_rating.csv').
+
+Notes:
+
+    Before rerunning the script, it is advisable to clear previous data in the database and the output folder.
+
+
+#######################################################################
+
+2. Jokes_DataPreprocessing
+
+Script functionality:
+
+The script aims to process user ratings, normalize data, and calculate similarities between the active user and other users. Normalized ratings are stored in a SQLite database.
+
+    Tabela 'ratings'
+        user_id (INTEGER): Unique identifier for the user.
+        number_of_jokes_rated (INTEGER): Number of jokes rated by the user.
+        joke_1, joke_2, ..., joke_100 (FLOAT): User ratings for each joke.
+
+    Tabela 'normalized_ratings'
+        user_id (INTEGER): Unique identifier for the user.
+        number_of_jokes_rated (INTEGER): Number of jokes rated by the user.
+        joke_1, joke_2, ..., joke_100 (FLOAT): Normalized ratings for each joke by the user.
+
+Step 1: Data Preparation
+
+    The script starts by connecting to a SQLite database named 'jester_jokes'.
+    User rating data is retrieved from the 'ratings' table.
+    A data frame r_df is created, containing data for only 10 users and 8 jokes to monitor the process.
+
+Step 2: Data Normalization
+
+    Ratings marked '99' are replaced with 'NaN' using the replace_99 function.
+    Data for each user is normalized by subtracting the average rating from individual ratings using the normalization function.
+    'NaN' values are replaced with '0' using the replace_0 function.
+
+Step 3: Storing Normalized Data
+
+    Normalized data is stored in the 'normalized_ratings' table in the database using the insert_normalized_ratings_to_database function.
+    Changes are saved to the database.
+
+Step 4: Calculating Similarity
+
+    The calculate_similarity function computes the similarity between the active user and other users based on normalized ratings.
+
+
+#######################################################################
+
+3. Jokes_UserCollaborativeFiltering
+
+Script functionality:
+
+This script aims to recommend jokes to the active user based on similarities to users who have rated the same jokes. 
+Recommendations are based on normalized ratings stored in the database.
+
+   Main Functions:
+
+    weight_factor(x, y): Function calculating the weight factor, i.e., the similarity between user x and user y.
+    connect_to_database(sql_db): Function connecting to the SQLite database.
+    select_normalized_ratings(conn): Function retrieving normalized ratings from the database.
+    select_ratings(conn): Function retrieving ratings from the database.
+    select_complete_and_sparse_ratings(normalized_ratings_df): Function retrieving completely and sparsely normalized ratings.
+    select_random_active_user(sparse_ratings): Function selecting a random active user from sparsely rated users.
+    calculate_similarity(active_user_rating_list, complete_ratings): Function calculating similarity between the active user and neighboring users.
+    select_random_neighbours(similarity, num_neighbours=30): Function selecting random neighbors from neighboring users.
+    select_recommendation_columns(active_user_rating): Function selecting columns for recommendation for the active user.
+    calculate_active_user_mean_rating(active_user_id, ratings_df, recommendation_columns): Function calculating the average rating of the active user.
+    suggest_joke(neighbours_df, neighbour_user_similarity, active_user_mean_rating): Function suggesting a joke for the active user.
+    score_user_item(item_id, neighbours_df, neighbour_user_similarity, active_user_mean_rating): Function calculating the score for a given joke.
+
+Sure, I can help you translate this text to English. Here's the translated version:
+1. Jokes_SQLInsertion
+
+Purpose of the Script:
+
+The script is designed to process and store data about jokes and user ratings in a SQLite database.
+
+Database Structure:
+
+    Table 'jokes'
+        joke_id (INTEGER): Unique identifier for the joke.
+        joke (TEXT): The text of the joke in text format.
+
+    Table 'ratings'
+        user_id (INTEGER): Unique identifier for the user.
+        number_of_jokes_rated (INTEGER): Number of jokes rated by the user.
+        joke_1, joke_2, ..., joke_100 (FLOAT): User ratings for each joke. Ratings are normalized.
+
+Operation:
+
+Step 1: Downloading and storing joke data
+
+    The script starts by creating or connecting to a SQLite database named 'jester_jokes'.
+    Two tables are created: 'jokes' for storing jokes and 'ratings' for storing user ratings.
+    Joke data is retrieved from HTML files in the 'data/raw/jokes' folder. Each file represents one joke, which is processed using html2text and stored in the 'jokes' table.
+
+Step 2: Downloading and storing user ratings
+
+    Rating data is read from three Excel files: 'jester-data-1.xls', 'jester-data-2.xls', 'jester-data-3.xls'.
+    The data is combined into a single data frame, and unique user identifiers are assigned.
+    Ratings are stored in the 'ratings' table in the database.
+
+Verification:
+
+    After the script completes, the last rows of the 'ratings' table are displayed to verify the changes made. Additionally, the data is saved to a CSV file ('data/jester_jokes_rating.csv').
+
+Notes:
+
+    Before rerunning the script, it is advisable to clear previous data in the database and the output folder.
+
+2. Jokes_DataPreprocessing
+
+Purpose of the Script:
+
+The script aims to process user ratings, normalize data, and calculate similarities between the active user and other users. Normalized ratings are stored in a SQLite database.
+
+Database Structure:
+
+    Table 'ratings'
+        user_id (INTEGER): Unique identifier for the user.
+        number_of_jokes_rated (INTEGER): Number of jokes rated by the user.
+        joke_1, joke_2, ..., joke_100 (FLOAT): User ratings for each joke.
+
+    Table 'normalized_ratings'
+        user_id (INTEGER): Unique identifier for the user.
+        number_of_jokes_rated (INTEGER): Number of jokes rated by the user.
+        joke_1, joke_2, ..., joke_100 (FLOAT): Normalized ratings for each joke by the user.
+
+Step 1: Data Preparation
+
+    The script starts by connecting to a SQLite database named 'jester_jokes'.
+    User rating data is retrieved from the 'ratings' table.
+    A data frame r_df is created, containing data for only 10 users and 8 jokes to monitor the process.
+
+Step 2: Data Normalization
+
+    Ratings marked '99' are replaced with 'NaN' using the replace_99 function.
+    Data for each user is normalized by subtracting the average rating from individual ratings using the normalization function.
+    'NaN' values are replaced with '0' using the replace_0 function.
+
+Step 3: Storing Normalized Data
+
+    Normalized data is stored in the 'normalized_ratings' table in the database using the insert_normalized_ratings_to_database function.
+    Changes are saved to the database.
+
+Step 4: Calculating Similarity
+
+    The calculate_similarity function computes the similarity between the active user and other users based on normalized ratings.
+
+3. Jokes_UserCollaborativeFiltering
+
+Purpose of the Script:
+
+This script aims to recommend jokes to the active user based on similarities to users who have rated the same jokes. Recommendations are based on normalized ratings stored in the database.
+
+Database Structure:
+
+Main Functions:
+
+    weight_factor(x, y): Function calculating the weight factor, i.e., the similarity between user x and user y.
+    connect_to_database(sql_db): Function connecting to the SQLite database.
+    select_normalized_ratings(conn): Function retrieving normalized ratings from the database.
+    select_ratings(conn): Function retrieving ratings from the database.
+    select_complete_and_sparse_ratings(normalized_ratings_df): Function retrieving completely and sparsely normalized ratings.
+    select_random_active_user(sparse_ratings): Function selecting a random active user from sparsely rated users.
+    calculate_similarity(active_user_rating_list, complete_ratings): Function calculating similarity between the active user and neighboring users.
+    select_random_neighbours(similarity, num_neighbours=30): Function selecting random neighbors from neighboring users.
+    select_recommendation_columns(active_user_rating): Function selecting columns for recommendation for the active user.
+    calculate_active_user_mean_rating(active_user_id, ratings_df, recommendation_columns): Function calculating the average rating of the active user.
+    suggest_joke(neighbours_df, neighbour_user_similarity, active_user_mean_rating): Function suggesting a joke for the active user.
+    score_user_item(item_id, neighbours_df, neighbour_user_similarity, active_user_mean_rating): Function calculating the score for a given joke.
+
+Step 1: Selecting the Active User
+
+    The script starts by connecting to a SQLite database named 'jester_jokes'.
+    Normalized ratings and user ratings are retrieved from the 'normalized_ratings' and 'ratings' tables.
+
+Step 2: Selecting a User and Preparing Data
+
+    The script selects a random active user from sparsely rated users.
+    The active user's ratings are displayed.
+
+Step 3: Calculations and Recommendations
+
+    The script calculates similarity between the active user and other users from complete ratings.
+    Random neighbors are then selected.
+    Joke columns for recommendation are selected for the active user.
+    The average rating of the active user is calculated.
+    A joke is suggested based on the ratings of neighbors and the active user.
+
+Step 4: Presenting Results
+
+    Selected jokes are displayed along with their content from the database.
+
+Notes:
+
+    Recommendations are based on user similarities, allowing the script to suggest jokes that may be of interest to the active user.

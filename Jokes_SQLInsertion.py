@@ -6,15 +6,15 @@ import pandas as pd
 import html2text
 import numpy as np
 
-# Połącz z bazą danych (lub utwórz, jeśli nie istnieje)
+# Connect to the database (or create it if it doesn't exist)
 sql_db = 'jester_jokes'
 db_path = 'data/{}.db'.format(sql_db)
 conn = db.connect(db_path)
 
-# Utwórz 'kursor' do wykonywania poleceń
+# Create a 'cursor' to execute commands
 c = conn.cursor()
 
-# Dla każdego użytkownika utworzone zostaną tylko te 5 tabele, w których będą zbierane wszystkie dane.
+# For each user, only these 5 tables will be created, in which all data will be collected.
 c.execute("CREATE TABLE IF NOT EXISTS jokes (joke_id INTEGER, joke TEXT)")
 
 schema = "CREATE TABLE IF NOT EXISTS ratings(user_id Integer, number_of_jokes_rated Integer,"
@@ -27,15 +27,15 @@ file = 'init1.html'
 data = codecs.open('data/raw/jokes/' + file, 'r', encoding="cp1252")
 joke_html = data.read()
 
-# Wydobcie żartu z pliku HTML
+# Extract the joke from the HTML file
 joke = html2text.html2text(joke_html)
-# Wyodrębnienie identyfikatora żartu
+# Extract the joke's identifier
 joke_id = int(file.split('init')[1].split('.html')[0])
 
 print(joke_id)
 print(joke)
 
-# Metoda przyjmuje lokalizację pliku HTML jako wejście i zwraca z tego żart
+# This method takes the location of the HTML file as input and returns the joke from it
 def joke_extractor(file):
     data = codecs.open(file, 'r', encoding="cp1252")
     joke_html = data.read()
@@ -57,7 +57,7 @@ def insert_ratings_to_database(c, dataframe):
 
 def main():
     
-    # odczytywanie danych  z plików excel
+    # Reading data from Excel files
     df1 = pd.read_excel('data/raw/jester-data-1.xls', header=None)
     df2 = pd.read_excel('data/raw/jester-data-2.xls', header=None)
     df3 = pd.read_excel('data/raw/jester-data-3.xls', header=None)
@@ -67,18 +67,18 @@ def main():
     user_id = np.linspace(1, len(dataframe), len(dataframe))
     dataframe.insert(0, 'user_id', user_id)
 
-    # Zapisanie ocen do bazy danych
+    # Saving the ratings to the database
     insert_ratings_to_database(c, dataframe)
     
-    # Zapisanie zmian w bazie danych
+    # Saving the changes to the database
     conn.commit()
 
-    # Wyświetl ostatnie kilka wierszy tabeli 'ratings'(w ramach sprawdzenia)
+    # Displaying the last few rows of the 'ratings' table (for verification)
     query = 'SELECT * FROM ratings'
     df = pd.read_sql(query, conn)
     print(df.tail())
 
-    # Zapisaie danych do pliku CSV (na wszelki wypadek)
+    # Saving data to a CSV file (just in case)
     df.to_csv('data/jester_jokes_rating.csv', index=None)
 
 if __name__ == "__main__":
